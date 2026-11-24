@@ -3,6 +3,8 @@
 # Ejecutar desde la raiz con Rscript scripts/03_test_methylkit.R (sin --vanilla).
 # Formato documentado en help("methRead", package = "methylKit") 1.38.0:
 # bismarkCytosineReport, siete columnas, sin cabecera. No es un formato EMN.
+source("scripts/qc_methylkit.R")
+
 probar_methread <- function() {
   stopifnot(
     !is.null(renv::project()),
@@ -14,17 +16,9 @@ probar_methread <- function() {
   message("methylKit ", utils::packageVersion("methylKit"),
           " desde ", find.package("methylKit"))
 
-  objeto <- methylKit::methRead(
-    location = "tests/fixtures/methylkit_cytosine_report.tsv",
-    sample.id = "synthetic_cpg",
-    assembly = "synthetic",
-    pipeline = "bismarkCytosineReport",
-    header = FALSE,
-    skip = 0,
-    sep = "\t",
-    context = "CpG",
-    resolution = "base",
-    dbtype = NA,
+  objeto <- leer_llamadas_methylkit(
+    ruta = "tests/fixtures/methylkit_cytosine_report.tsv",
+    muestra = "synthetic_cpg",
     mincov = 10
   )
   stopifnot(methods::is(objeto, "methylRaw"))

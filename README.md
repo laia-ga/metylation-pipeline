@@ -92,3 +92,52 @@ No usar `--vanilla`: esta prueba carga el perfil del proyecto para activar
 de la EMN sigue pendiente de confirmar**. Se conserva sin cambios el borrador
 `scripts/01_import_methylkit.R`, cuya importación aún está pendiente de configurar.
 
+## Resumen de control de calidad (QC)
+
+`scripts/qc_methylkit.R` comparte la lectura con la prueba de importación y
+ofrece `resumir_qc_methylkit(archivos, umbral_cobertura)`. `archivos` es un
+vector de rutas con nombres únicos de muestra. La función devuelve una tabla
+con una fila por muestra: `sample`, `coverage_threshold`, `n_cpg_before`,
+`n_cpg_after`, `n_cpg_excluded`, `median_coverage_before` y
+`median_coverage_after`.
+
+Para el QC, la lectura inicial con `methRead()` usa **`mincov = 0`** para
+conservar los registros previos al filtro, incluido chr1:400 con cobertura 9.
+Después se conservan los registros cuya cobertura es mayor o igual que
+`umbral_cobertura`. Los conteos corresponden a registros CpG por hebra, sin
+fusionar hebras. Las medianas se calculan sobre los registros presentes en
+cada etapa; si no queda ninguno, la mediana es `NA`.
+
+Desde la raíz del repositorio, ejecutar en `renv` (sin `--vanilla`):
+
+```sh
+Rscript scripts/04_test_qc_methylkit.R
+```
+
+La prueba reutiliza el fixture `bismarkCytosineReport` y usa umbral 10:
+
+| Muestra | Umbral | CpG antes | CpG después | Excluidos | Mediana antes | Mediana después |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| synthetic_cpg | 10 | 4 | 3 | 1 | 11 | 12 |
+
+Antes del filtro las coberturas son 10, 20, 12 y 9; después son 10, 20 y 12.
+El CpG chr1:100, con cobertura 10 y 0 % de metilación, se conserva.
+La prueba también verifica otros umbrales (9 y 21), la mediana `NA` cuando
+se excluyen todos los registros y la generación de una fila por muestra
+usando dos identificadores sobre el mismo fixture.
+
+Para cambiar el umbral desde R, dentro del entorno del proyecto:
+
+```r
+source("scripts/qc_methylkit.R")
+qc <- resumir_qc_methylkit(
+  c(synthetic_cpg = "tests/fixtures/methylkit_cytosine_report.tsv"),
+  umbral_cobertura = 10
+)
+print(qc)
+```
+
+**10 es únicamente el umbral del ejemplo sintético**, no un criterio de QC
+validado para la EMN. El formato real de la EMN sigue pendiente de confirmar;
+el borrador de su importador se conserva sin cambios.
+
