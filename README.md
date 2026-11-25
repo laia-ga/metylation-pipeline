@@ -141,3 +141,80 @@ print(qc)
 validado para la EMN. El formato real de la EMN sigue pendiente de confirmar;
 el borrador de su importador se conserva sin cambios.
 
+## Exploración con bsseq
+
+`scripts/05_test_bsseq.R` reutiliza `muestra_a.tsv` y `muestra_b.tsv` y su
+lector validado para construir un objeto `BSseq` con tres posiciones y dos
+muestras. Usa la unión de las coordenadas y conserva los identificadores
+`muestra_a` y `muestra_b`. La matriz `M` contiene los conteos metilados y
+`Cov` la cobertura total (metilados + no metilados), sin filtro ni suavizado.
+
+Una posición sin fila en una muestra se representa con `M = 0, Cov = 0`:
+significa que no hay lecturas observadas, sin imputar un porcentaje. En
+chr1:100 de A, `M = 0, Cov = 10` produce 0 % de metilación. En chr1:200 de B,
+ausente en el fixture, `M = 0, Cov = 0` produce un valor no definido (`NA` o
+`NaN`, reconocido con `is.na()`) al obtener la metilación cruda con
+`bsseq::getMeth(type = "raw")`. La cobertura permite distinguir ambos casos.
+
+Desde la raíz del proyecto, con bsseq ya disponible en `renv`:
+
+```sh
+Rscript scripts/05_test_bsseq.R
+```
+
+La prueba verifica el objeto, los identificadores y coordenadas, ambas
+matrices completas, los totales por muestra y las fracciones de metilación,
+incluida la distinción entre 0 % y ausencia. Informa de la versión y ruta
+del paquete; se ha probado con bsseq 1.48.0. No instala paquetes ni modifica
+`renv.lock`: es una exploración y la incorporación de bsseq como dependencia
+del pipeline queda pendiente de decidir. El formato real EMN sigue pendiente
+de confirmar y su importador continúa como borrador.
+
+## Comando QC para una lista de muestras
+
+Desde la raíz del proyecto y en `renv` (sin `--vanilla`):
+
+```sh
+Rscript -e "dir.create('results', showWarnings = FALSE)"
+Rscript scripts/run_qc.R tests/fixtures/qc_samples.tsv 10 results/qc_example.tsv
+```
+
+Los tres argumentos son el TSV de muestras, el umbral mínimo de cobertura
+(entero no negativo) y el TSV de salida. El directorio de salida debe existir.
+El ejemplo lo crea en `results/`, la carpeta de resultados locales excluida
+de Git. Así los TSV generados no se guardan en la raíz ni se añaden al código.
+El manifiesto debe tener exactamente dos columnas, `sample_id` y `path`, en
+ese orden, con cabecera y al menos una muestra. Por ejemplo, el manifiesto
+incluido contiene:
+
+```text
+sample_id\tpath
+synthetic_cpg\tmethylkit_cytosine_report.tsv
+```
+
+En este bloque `\t` representa un tabulador real. Las rutas de entrada pueden
+ser absolutas o relativas al directorio del manifiesto; la ruta de salida es
+relativa al directorio de ejecución. Los identificadores se leen como texto.
+El comando falla con un error claro si hay identificadores repetidos, valores
+vacíos o archivos inexistentes, y valida todas las entradas antes del QC.
+
+El comando reutiliza `resumir_qc_methylkit()` y escribe una fila por muestra
+con las columnas del resumen QC descritas arriba (`sample` conserva el
+`sample_id` de entrada). La lectura inicial usa `mincov = 0`, por lo que
+incluye el registro de cobertura 9 antes de aplicar el umbral. Para este
+ejemplo con umbral 10 se esperan 4 registros antes, 3 después, 1 excluido y
+medianas de cobertura de 11 y 12, respectivamente.
+
+La prueba del comando completo genera un TSV temporal, vuelve a leerlo y
+comprueba esos valores y los errores por identificador duplicado y archivo
+ausente. Se reproduce con:
+
+```sh
+Rscript scripts/06_test_run_qc.R
+```
+
+El formato aceptado sigue siendo `bismarkCytosineReport` del ejemplo sintético.
+**El formato real de la EMN sigue pendiente de confirmar** y el umbral 10 es
+solo el del ejemplo. El borrador del importador EMN y `renv.lock` se conservan
+sin cambios.
+
