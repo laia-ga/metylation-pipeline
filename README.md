@@ -218,3 +218,53 @@ El formato aceptado sigue siendo `bismarkCytosineReport` del ejemplo sintético.
 solo el del ejemplo. El borrador del importador EMN y `renv.lock` se conservan
 sin cambios.
 
+## Matriz de metilación por regiones sintéticas
+
+`scripts/region_methylation.R` ofrece
+`matriz_metilacion_regiones(archivos, regiones, umbral_cobertura)`. Reutiliza
+`leer_ejemplo()` para leer y validar los conteos de los dos fixtures
+`muestra_a.tsv` y `muestra_b.tsv`. `archivos` es un vector de rutas con nombres
+únicos de muestra y `regiones` una tabla con `region_id`, `chr`, `start` y
+`end`. Devuelve una matriz numérica de porcentajes (0–100), con muestras en
+filas y regiones en columnas, conservando los identificadores y su orden.
+
+Las coordenadas son de **base 1, con ambos límites incluidos**, como las
+posiciones de los fixtures. La prueba define estas regiones, que pueden
+solaparse:
+
+| Región | Cromosoma | Inicio | Final |
+| --- | --- | ---: | ---: |
+| r_100_200 | chr1 | 100 | 200 |
+| r_100 | chr1 | 100 | 100 |
+| r_200_299 | chr1 | 200 | 299 |
+
+Para cada muestra y región, se conservan únicamente los CpG con cobertura
+positiva y mayor o igual que el umbral configurable. Se calcula la **media
+aritmética de los porcentajes individuales**, dando el mismo peso a cada
+CpG. Por ejemplo, en A para chr1:100–200 con umbral 10, los porcentajes son
+0 % y 50 %, y su media es 25 %. No se suman conteos para calcular un porcentaje
+regional ponderado por cobertura (que sería 33,33 % en este caso).
+
+La matriz esperada con umbral 10 es:
+
+| Muestra | r_100_200 | r_100 | r_200_299 |
+| --- | ---: | ---: | ---: |
+| muestra_a | 25 | 0 | 50 |
+| muestra_b | 20 | 20 | NA |
+
+Un CpG observado al 0 % con cobertura suficiente produce `0`; una región
+sin CpG válidos produce `NA`, nunca se imputa como cero. Esto incluye la
+posición ausente en B, los CpG excluidos por cobertura y la cobertura nula
+incluso si el umbral se configura en 0.
+
+Para reproducir la prueba desde la raíz del proyecto, en `renv`:
+
+```sh
+Rscript scripts/07_test_region_methylation.R
+```
+
+La prueba comprueba la matriz completa, la media calculada a mano, el 0 %
+observado, la ausencia, otros umbrales (15 y 21) y la cobertura nula. No añade
+dependencias. Las regiones y el umbral 10 son sintéticos; el formato real
+EMN sigue pendiente de confirmar y su importador continúa como borrador.
+
