@@ -268,3 +268,38 @@ observado, la ausencia, otros umbrales (15 y 21) y la cobertura nula. No añade
 dependencias. Las regiones y el umbral 10 son sintéticos; el formato real
 EMN sigue pendiente de confirmar y su importador continúa como borrador.
 
+### Exportación de la matriz a TSV
+
+`exportar_metilacion_regiones(archivos, regiones, umbral_cobertura, salida)`
+reutiliza la función de agregación y escribe una fila por muestra. La primera
+columna es `sample_id`; las demás son las regiones, con los mismos nombres y
+orden que en la matriz. Los porcentajes observados de cero se escriben como
+`0` y los valores ausentes como el literal `NA`. La salida usa UTF-8 y no
+incluye una columna adicional de números de fila. El nombre `sample_id` está
+reservado y no puede usarse como identificador de región en esta exportación.
+
+Desde R, abierto en la raíz del proyecto con `renv` activo:
+
+```r
+source("scripts/region_methylation.R")
+archivos <- c(muestra_a = "tests/fixtures/muestra_a.tsv",
+              muestra_b = "tests/fixtures/muestra_b.tsv")
+regiones <- data.frame(
+  region_id = c("r_100_200", "r_100", "r_200_299"),
+  chr = rep("chr1", 3), start = c(100, 100, 200), end = c(200, 100, 299)
+)
+dir.create("results", showWarnings = FALSE)
+exportar_metilacion_regiones(archivos, regiones, umbral_cobertura = 10,
+                            salida = "results/region_methylation.tsv")
+```
+
+La prueba existente también escribe un TSV temporal y lo vuelve a leer para
+comprobar todos los valores, los IDs de muestra, los nombres y el orden de
+las regiones. Verifica específicamente el `0` de A en chr1:100–100 y el `NA`
+de B en chr1:200–299, incluida su representación en el archivo. Para ejecutar
+todas estas comprobaciones en `renv`, desde la raíz y sin `--vanilla`:
+
+```sh
+Rscript scripts/07_test_region_methylation.R
+```
+

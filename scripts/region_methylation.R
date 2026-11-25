@@ -53,3 +53,17 @@ matriz_metilacion_regiones <- function(archivos, regiones, umbral_cobertura) {
   }
   resultado
 }
+
+# Agrega y exporta conservando el orden de muestras y regiones de la matriz.
+exportar_metilacion_regiones <- function(archivos, regiones, umbral_cobertura, salida) {
+  matriz <- matriz_metilacion_regiones(archivos, regiones, umbral_cobertura)
+  if ("sample_id" %in% colnames(matriz)) {
+    stop("El nombre de region sample_id esta reservado para la columna de muestras.",
+         call. = FALSE)
+  }
+  tabla <- data.frame(sample_id = rownames(matriz), matriz,
+                      check.names = FALSE, row.names = NULL)
+  write.table(tabla, file = salida, sep = "\t", row.names = FALSE,
+              quote = TRUE, na = "NA", fileEncoding = "UTF-8")
+  invisible(tabla)
+}
