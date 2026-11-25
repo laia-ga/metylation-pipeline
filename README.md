@@ -303,3 +303,41 @@ todas estas comprobaciones en `renv`, desde la raíz y sin `--vanilla`:
 Rscript scripts/07_test_region_methylation.R
 ```
 
+## Unión sintética con seguimiento clínico
+
+`scripts/join_clinical.R` ofrece
+`unir_metilacion_clinica(tsv_metilacion, muestras, seguimiento)`. Lee el TSV
+regional y une por `sample_id` con la tabla de muestras (`sample_id`,
+`patient_id`) y por `patient_id` con el seguimiento (`patient_id`, `time`,
+`event`). Conserva una fila por muestra, su orden y todos los valores y
+columnas de metilación, incluidos `0` y `NA`.
+
+La unión rechaza `sample_id` duplicados en la metilación o la tabla de
+muestras, `patient_id` duplicados en el seguimiento y muestras sin asignación
+de paciente o sin seguimiento. Un `patient_id` repetido en la tabla de
+muestras sí es válido: permite conservar varias muestras del mismo paciente.
+Las filas clínicas adicionales no generan muestras nuevas en la salida.
+
+La prueba `scripts/08_test_join_clinical.R` genera el TSV regional con la
+exportación existente y usa `tests/fixtures/clinical_samples.tsv` y
+`tests/fixtures/clinical_followup.tsv`. Incluye un evento (`event = 1`) y una
+censura (`event = 0`). La muestra `muestra_a_2` reutiliza los conteos del
+fixture A como segunda muestra sintética de `patient_01`; no representa un
+paciente adicional. Las tablas clínicas tienen distinto orden para comprobar
+que la unión usa identificadores. También prueba los errores de duplicados y
+correspondencias ausentes, sin dejar archivos temporales.
+
+Desde PowerShell en la raíz del proyecto, con `renv` (sin `--vanilla`):
+
+```powershell
+& 'C:/Program Files/R/R-4.6.2/bin/Rscript.exe' scripts/08_test_join_clinical.R
+```
+
+El script imprime la tabla resultante. `time` contiene valores sintéticos
+sin unidad clínica asignada y `event` solo acepta 0 o 1. **El desenlace y la
+unidad de análisis de la EMN siguen pendientes de confirmar**, al igual que
+su formato. Conservar `patient_id` permite agrupar las muestras de un mismo
+paciente en la futura validación; esta prueba no decide cómo analizarlas ni
+las trata como pacientes independientes. El importador EMN sigue como borrador
+y no se modifica `renv.lock`.
+
