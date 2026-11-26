@@ -253,3 +253,45 @@ Rscript scripts/01_import_methylkit.R tests/fixtures/methylkit_cytosine_report.t
 ```
 
 Este comando no importa datos ni produce una tabla de resultados.
+
+## Inventario de archivos (prueba 09)
+
+[inventory_inputs.R](../scripts/inventory_inputs.R) recibe una carpeta y un TSV
+de salida. Recorre las subcarpetas e incluye archivos ocultos. No abre archivos
+de datos ni comprueba su integridad. Para inventariar los fixtures desde la raíz:
+
+```powershell
+Rscript -e "dir.create('results', showWarnings = FALSE)"
+Rscript scripts/inventory_inputs.R tests/fixtures results/inventory.tsv
+```
+
+La salida contiene `relative_path` (relativa a la carpeta inventariada),
+`size_bytes`, `apparent_type`, `type_is_tentative` y `classification_basis`.
+El directorio de salida debe existir. Se excluye el propio TSV de salida si
+está dentro de la carpeta de entrada, también al repetir una ejecución.
+Una carpeta vacía produce solo la cabecera; una carpeta inexistente da error.
+
+La clasificación usa únicamente el nombre del archivo, sin distinguir mayúsculas:
+
+| Tipo aparente | Regla orientativa |
+| --- | --- |
+| `FASTQ` | Extensión `.fastq` o `.fq` |
+| `BAM/CRAM` | Extensión `.bam` o `.cram`; los índices quedan como desconocidos |
+| `informe_metilacion` | `.cov` o nombres como `cytosine_report`, `methylation_report`, `methylkit`, `myCpG` o Bismark con `coverage`/`report` |
+| `tabla_metadatos` | `.tsv`, `.csv` o `.txt` con palabras como `sample`, `patient`, `clinical`, `metadata`, `manifest`, `followup`, `phenotype`, `cohort`, `metadatos`, `muestra`, `paciente` o `seguimiento` |
+| `desconocido` | Sin coincidencia; incluye tablas de nombre genérico |
+
+Se permite un sufijo de compresión `.gz`, `.bz2` o `.xz`. Las coincidencias
+se evalúan en el orden de la tabla. Todo tipo deducido se marca con
+`type_is_tentative = TRUE` y `classification_basis = "nombre/extension"`;
+para desconocidos se indica `FALSE` y `"sin coincidencia"`. Ninguna etiqueta
+confirma que el contenido sea válido ni establece el formato de importación EMN.
+
+La prueba crea archivos ficticios con tamaños conocidos, ejecuta el comando
+completo y relee el TSV. Comprueba rutas y tamaños, las cuatro categorías,
+desconocidos, extensión en mayúsculas, compresión, subcarpetas con espacios,
+archivos ocultos, repetición sin incluir la salida y carpeta vacía:
+
+```powershell
+Rscript scripts/09_test_inventory_inputs.R
+```
