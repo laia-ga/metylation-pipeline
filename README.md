@@ -29,22 +29,16 @@ Ejecuta los comandos siguientes desde la raíz, sin `--vanilla`.
 
 ## Probarlo
 
-Generar el resumen QC de ejemplo en la carpeta de resultados locales:
+Ejecutar la demo completa (lectura methylKit → QC → regiones → seguimiento):
 
 ```powershell
-Rscript -e "dir.create('results', showWarnings = FALSE)"
-Rscript scripts/run_qc.R tests/fixtures/qc_samples.tsv 10 results/qc_example.tsv
+Rscript scripts/run_demo.R
 ```
 
-El TSV contiene una fila por muestra con recuentos de CpG y medianas de cobertura
-antes y después del filtro. `results/` está excluida de Git.
-
-Probar la unión de metilación regional y seguimiento clínico:
-
-```powershell
-Rscript scripts/08_test_join_clinical.R
-```
-
-La prueba imprime la tabla unida y comprueba identificadores, valores y muestras
-que comparten paciente. Los detalles de los fixtures, las tablas esperadas y
+La demo crea `results/demo/` y genera `qc.tsv`, `region_methylation.tsv` y
+`clinical.tsv`. Relee las tres salidas y comprueba coordenadas, conteos,
+cobertura, los valores `0` y `NA` y la asociación muestra-paciente, incluidas
+dos muestras del mismo paciente. Una comprobación fallida termina con error.
+Las ejecuciones posteriores reemplazan esas tres salidas; `results/` está
+excluida de Git. Los detalles de los fixtures, las tablas esperadas y
 los comandos de todas las pruebas están en [docs/pruebas.md](docs/pruebas.md).

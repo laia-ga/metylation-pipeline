@@ -16,9 +16,42 @@ Las pruebas de exportación escriben archivos temporales, los releen y los borra
 | [muestra_a.tsv](../tests/fixtures/muestra_a.tsv) | Tres CpG: chr1:100, chr1:200 y chr1:300 |
 | [muestra_b.tsv](../tests/fixtures/muestra_b.tsv) | Dos CpG: chr1:100 y chr1:300; chr1:200 está ausente |
 | [methylkit_cytosine_report.tsv](../tests/fixtures/methylkit_cytosine_report.tsv) | Cuatro registros en formato `bismarkCytosineReport` |
+| [methylkit_cytosine_report_b.tsv](../tests/fixtures/methylkit_cytosine_report_b.tsv) | Informe B para la demo: chr1:100 (2/8), chr1:300 (8/2), chr1:400 (0/9), conteos metilados/no metilados |
 | [qc_samples.tsv](../tests/fixtures/qc_samples.tsv) | Manifiesto QC con columnas `sample_id` y `path` |
 | [clinical_samples.tsv](../tests/fixtures/clinical_samples.tsv) | Correspondencia de tres muestras con dos pacientes |
 | [clinical_followup.tsv](../tests/fixtures/clinical_followup.tsv) | Seguimiento por paciente con `time` y `event` |
+
+## Demo integrada
+
+[run_demo.R](../scripts/run_demo.R) conecta las funciones existentes de lectura,
+QC, agregación regional, exportación y unión clínica. Se ejecuta con el comando
+único del README. Crea y relee tres TSV en `results/demo/`; no usa salidas previas.
+Cada ejecución reemplaza los tres archivos de esa carpeta.
+
+[exportar_conteos_methylkit()](../scripts/methylkit_counts.R) adapta cada objeto
+`methylRaw` a las columnas `chr`, `position`, `methylated`, `unmethylated` y
+`coverage` que ya acepta el agregador. Usa `start` como posición, `numCs` y
+`numTs` como conteos, sin cambiar coordenadas ni filtrar. Requiere `start=end`
+y coordenadas únicas por cromosoma; rechaza posiciones repetidas entre hebras
+en lugar de fusionarlas implícitamente. Los TSV intermedios son temporales.
+La demo compara la conversión directamente con las columnas de los informes
+originales y comprueba la suma de conteos frente a la cobertura.
+
+Se usa umbral 10 tanto en QC como en regiones. La lectura inicial conserva
+chr1:400 con cobertura 9, que se excluye después. A y A_2 reutilizan el informe
+original; B tiene tres registros y carece de chr1:200. Los pacientes se asignan
+con los fixtures clínicos existentes.
+
+| Archivo | Muestra | Antes | Después | Excluidos | Mediana antes | Mediana después |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| qc.tsv | muestra_a | 4 | 3 | 1 | 11 | 12 |
+| qc.tsv | muestra_b | 3 | 2 | 1 | 10 | 10 |
+| qc.tsv | muestra_a_2 | 4 | 3 | 1 | 11 | 12 |
+
+`region_methylation.tsv` y `clinical.tsv` contienen las tres filas regionales y
+clínicas de la tabla de la prueba 08. La demo verifica todos los valores y el
+orden de las columnas, el `0` de A en r_100, el `NA` de B en r_200_299 y el
+`patient_id` correcto de cada muestra. `muestra_a_2` conserva `patient_01`.
 
 ## Conteos por CpG (prueba 02)
 
@@ -100,7 +133,12 @@ valores vacíos y archivos ausentes antes de procesar.
 
 La [prueba 06](../scripts/06_test_run_qc.R) ejecuta el comando completo, relee
 el TSV y verifica la tabla anterior, además de los errores por duplicados y
-archivos ausentes. El comando para conservar un resultado está en el README.
+archivos ausentes. Para conservar un resultado individual:
+
+```powershell
+Rscript -e "dir.create('results', showWarnings = FALSE)"
+Rscript scripts/run_qc.R tests/fixtures/qc_samples.tsv 10 results/qc_example.tsv
+```
 
 ## Exploración con bsseq (prueba 05)
 
@@ -199,7 +237,11 @@ Se rechazan `sample_id` duplicados en metilación o muestras, `patient_id`
 duplicados en seguimiento y muestras sin paciente o sin seguimiento. Repetir
 `patient_id` en la tabla de muestras sí es válido. Las filas clínicas adicionales
 no añaden muestras a la salida. La prueba comprueba todos esos casos y la
-conservación de `0` y `NA`; el comando está en el README.
+conservación de `0` y `NA`:
+
+```powershell
+Rscript scripts/08_test_join_clinical.R
+```
 
 ## Borrador de importación
 
